@@ -2,7 +2,7 @@
 
 const gp = {
     parameters: {
-        storyUrl: '/story.json',
+        storyUrl: './story.json',
         leaflet: {
             icons: {
                 default: {
