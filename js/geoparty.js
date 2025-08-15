@@ -1,14 +1,14 @@
-
-
+'use strict';
 const gp = {
-    parameters: {
+    defaults: {
         storyUrl: './story.json',
+        themeUrl: './theme.json',
         leaflet: {
-            icons: {
+            circles: {
                 default: {
-                    iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
-                    iconSize: [25, 41],
-                    iconAnchor: [12, 41]
+                    radius: 2,
+                    dashArray: '4',
+                    className: 'gp-circle'
                 }
             },
             style: 'https://openmaptiles.geo.data.gouv.fr/styles/osm-bright/style.json',
@@ -19,17 +19,64 @@ const gp = {
     map: null,
     mapgl: null,
     story: null,
+    theme: null,
     spots: {},
+    lines: {},
+    circles: {},
     lastUserLat: 0,
     lastUserLng: 0,
+    isObject: function(data) {
+        return typeof data === 'object' && !Array.isArray(data) && data !== null
+    },
     isArray: function(data) {
-        let response = false;
-        if (typeof data == 'object') {
-            if (Object.prototype.toString.call(data) === '[object Array]') {
-                response = true;
-            }
-        };
-        return response;
+        return Array.isArray(data);
+    },
+    localStorageAvailable: function() {
+        let storage;
+        try {
+            storage = window['localStorage'];
+            const x = "__storage_test__";
+            storage.setItem(x, x);
+            storage.removeItem(x);
+            return true;
+        } catch (e) {
+            return (
+                e instanceof DOMException &&
+                // everything except Firefox
+                (e.code === 22 ||
+                    // Firefox
+                    e.code === 1014 ||
+                    // test name field too, because code might not be present
+                    // everything except Firefox
+                    e.name === "QuotaExceededError" ||
+                    // Firefox
+                    e.name === "NS_ERROR_DOM_QUOTA_REACHED") &&
+                // acknowledge QuotaExceededError only if there's something already stored
+                storage &&
+                storage.length !== 0
+            );
+        }
+    },
+    // Get local storage data from identifier
+    getLocalStorage: function(identifier) {
+        if (gp.localStorageAvailable() && typeof identifier == 'string') {
+            return JSON.parse(localStorage.getItem(identifier));
+        }
+    },
+    // Store on localStorage
+    saveLocalStorage: function({identifier, backup}) {
+        if (gp.localStorageAvailable()
+            && typeof identifier == 'string'
+            && typeof backup == 'object') {
+            // console.log('save', identifier, JSON.stringify(backup));
+            localStorage.setItem(identifier, JSON.stringify(backup));
+        }
+    },
+    // Clear localStorage
+    clearLocalStorage: function(identifier) {
+        if (gp.localStorageAvailable()) {
+            localStorage.removeItem(identifier);
+        }
     },
     /**
      * GET HAVERSINE DISTANCE
@@ -57,12 +104,21 @@ const gp = {
         dist = dist * 1.609344 * 1000; // meters
         return dist;
     },
-    getStory: async function() {
+    getStory: async function(url) {
         try {
-            const response = await fetch(gp.parameters.storyUrl);
+            const response = await fetch(url || gp.defaults.storyUrl);
             gp.story = await response.json();
         } catch (error) {
             console.log(error);
+        }
+    },
+    getTheme: async function(url) {
+        try {
+            const response = await fetch(url || gp.defaults.themeUrl);
+            gp.theme = await response.json();
+        } catch (error) {
+            // console.log(error);
+            gp.theme = {};
         }
     },
     getUserLocation: async function() {
@@ -76,17 +132,19 @@ const gp = {
     },
     handlers: {
         _spotClick: function(evt) {
-            console.log(evt)
+            console.log('spot click', evt)
+        },
+        _circleClick: function(evt) {
+            console.log('circle click', evt)
         },
         _mapClick: function(evt) {
-            console.log(evt)
+            console.log('map click', evt)
         }
     },
     spotIsOk: function(spot) {
         let result = true;
         if (typeof spot == 'object') {
             if (gp.isArray(spot)
-                || typeof spot.id != 'string'
                 || typeof spot.lat != 'number'
                 || typeof spot.lng != 'number') {
                 result = false;
@@ -96,37 +154,50 @@ const gp = {
         }
         return result;
     },
-    renderSpots: function() {
+    renderStorySpots: function() {
         if (gp.isArray(gp.story.spots)) {
-            gp.story.spots.forEach(function(spot) {
+            gp.story.spots.forEach(function(spot, spotIndex) {
+                const spotId = spot.id || `spot_${spotIndex + 1}`;
                 if (gp.spotIsOk(spot)) {
-                    let iconOptions = gp.parameters.leaflet.icons.default;
-                    if (typeof spot.icon == 'object') iconOptions = spot.icon;
-                    gp.spots[spot.id] = L.marker([spot.lat, spot.lng], {
-                        icon: L.icon(iconOptions),
-                        custom: spot.custom
+                    const iconOptions = {};
+                    Object.keys(gp.defaults.leaflet.circles.default).forEach(function(defaultParam) {
+                        iconOptions[defaultParam] = gp.defaults.leaflet.circles.default[defaultParam];
                     });
-                    gp.spots[spot.id].on('click', gp.handlers._spotClick);
-                    gp.spots[spot.id].addTo(gp.map);
+                    if (typeof spot.styleName == 'string') {
+                        if (gp.isObject(gp.theme.spots[spot.styleName])) {
+                            Object.keys(gp.theme.spots[spot.styleName]).forEach(function(customParam) {
+                                iconOptions[customParam] = gp.theme.spots[spot.styleName][customParam];
+                            });
+                        }
+                    }
+                    console.log(spotId,iconOptions)
+                    gp.circles[spotId] = L.circle([spot.lat, spot.lng], iconOptions).addTo(gp.map);
+                    gp.circles[spotId].on('click', gp.handlers._circleClick);
                 }
             });
         }
     },
-    init: async function() {
+    init: async function(options) {
         // const userLocation = await gp.getUserLocation();
         // console.log(userLocation);
         if (typeof L == 'object'
             && gp.map === null
             && gp.mapgl === null) {
+
             gp.map = L.map('map', {
                 center: [45, 2],
                 zoom: 15,
                 zoomControl: false
             });
+
             gp.mapgl = L.maplibreGL({
-                style: gp.parameters.leaflet.style,
-                attribution: gp.parameters.leaflet.attribution
+                style: options?.leaflet?.style || gp.defaults.leaflet.style
             }).addTo(gp.map);
+
+            await gp.getStory(options?.storyUrl);
+            await gp.getTheme(options?.themeUrl);
+            gp.renderStorySpots();
+            gp.fitMap();
 
             gp.simpleLocate = new L.Control.SimpleLocate({
                 position: "topleft",
@@ -144,34 +215,32 @@ const gp = {
                     gp.lastUserLat = event.lat;
                     gp.lastUserLng = event.lng;
                     gp.updateStory();
+                    gp.fitMap();
                 }
             }).addTo(gp.map);
             gp.map.on('click', gp.handlers._mapClick);
-            await gp.getStory();
             // console.log(gp.story)
-            gp.renderSpots();
-            gp.fitMap();
         }
     },
     fitMap: function() {
         if (gp.map !== null) {
             let spotsCoordsToDisplay = [];
-            Object.keys(gp.spots).forEach(function(spotId) {
-                const latLng = gp.spots[spotId].getLatLng();
+            Object.keys(gp.circles).forEach(function(spotId) {
+                const latLng = gp.circles[spotId].getLatLng();
                 spotsCoordsToDisplay.push([latLng.lat, latLng.lng]);
             });
+            if (gp.lastUserLat !== 0 && gp.lastUserLng !== 0) spotsCoordsToDisplay.push([gp.lastUserLat, gp.lastUserLng]);
             gp.map.fitBounds(spotsCoordsToDisplay, {padding: [20, 20]});
         }
     },
     updateStory: function() {
-        Object.keys(gp.spots).forEach(function(spotId) {
-            const   spotLatLng = gp.spots[spotId].getLatLng(),
-                    spotLat = spotLatLng.lat,
-                    spotLng = spotLatLng.lng,
-                    distance = gp.getHaversineDistance(spotLat, spotLng, gp.lastUserLat, gp.lastUserLng);
-            console.log(spotId, distance);
-        })
+        // Object.keys(gp.spots).forEach(function(spotId) {
+        //     const   spotLatLng = gp.spots[spotId].getLatLng(),
+        //             spotLat = spotLatLng.lat,
+        //             spotLng = spotLatLng.lng,
+        //             distance = gp.getHaversineDistance(spotLat, spotLng, gp.lastUserLat, gp.lastUserLng);
+        //     console.log(spotId, distance);
+        // });
     }
 }
-gp.init();
 

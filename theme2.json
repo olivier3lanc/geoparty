@@ -1,0 +1,9 @@
+{
+    "spots": {
+        "custom1": {
+            "radius": 1,
+            "dashArray": 10,
+            "color": "green"
+        }
+    }
+}
