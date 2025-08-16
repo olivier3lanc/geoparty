@@ -239,9 +239,11 @@ const gp = {
     spotRun: function(spotId) {
         if (typeof spotId == 'string') {
             if (gp.circles[spotId] !== undefined) {
-                alert(spotId);
-                gp.circles[spotId].remove();
-                gp.spotRunSuccess.push(spotId);
+                if (!gp.spotRunSuccess.includes(spotId)) {
+                    gp.spotRunSuccess.push(spotId);
+                    gp.circles[spotId].remove();
+                    alert(spotId);
+                }
             }
         }
     },
@@ -252,7 +254,7 @@ const gp = {
                     spotLng = spotLatLng.lng,
                     distance = gp.getHaversineDistance(spotLat, spotLng, gp.lastUserLat, gp.lastUserLng);
             console.log(spotId, distance);
-            if (distance <= gp.circles[spotId].options.radius && !gp.spotRunSuccess.includes(spotId)) gp.spotRun(spotId)
+            if (distance <= gp.circles[spotId].options.radius) gp.spotRun(spotId)
         });
     }
 }
