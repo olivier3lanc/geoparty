@@ -3,6 +3,7 @@ const gp = {
     defaults: {
         storyUrl: './story.json',
         themeUrl: './theme.json',
+        sequential: true,
         leaflet: {
             circles: {
                 default: {
@@ -20,11 +21,10 @@ const gp = {
     mapgl: null,
     story: null,
     theme: null,
-    spots: {},
-    lines: {},
     circles: {},
     lastUserLat: 0,
     lastUserLng: 0,
+    spotRunSuccess: [],
     isObject: function(data) {
         return typeof data === 'object' && !Array.isArray(data) && data !== null
     },
@@ -138,7 +138,10 @@ const gp = {
             console.log('circle click', evt)
         },
         _mapClick: function(evt) {
-            console.log('map click', evt)
+            console.log('map click', evt);
+            gp.lastUserLat = evt.latlng.lat;
+            gp.lastUserLng = evt.latlng.lng;
+            gp.updateStory()
         }
     },
     spotIsOk: function(spot) {
@@ -158,8 +161,8 @@ const gp = {
         if (gp.isArray(gp.story.spots)) {
             gp.story.spots.forEach(function(spot, spotIndex) {
                 const spotId = spot.id || `spot_${spotIndex + 1}`;
-                if (gp.spotIsOk(spot)) {
-                    const iconOptions = {};
+                if (gp.spotIsOk(spot) && gp.circles[spotId] === undefined) {
+                    const iconOptions = { id: spotId };
                     Object.keys(gp.defaults.leaflet.circles.default).forEach(function(defaultParam) {
                         iconOptions[defaultParam] = gp.defaults.leaflet.circles.default[defaultParam];
                     });
@@ -233,14 +236,24 @@ const gp = {
             gp.map.fitBounds(spotsCoordsToDisplay, {padding: [20, 20]});
         }
     },
+    spotRun: function(spotId) {
+        if (typeof spotId == 'string') {
+            if (gp.circles[spotId] !== undefined) {
+                alert(spotId);
+                gp.circles[spotId].remove();
+                gp.spotRunSuccess.push(spotId);
+            }
+        }
+    },
     updateStory: function() {
-        // Object.keys(gp.spots).forEach(function(spotId) {
-        //     const   spotLatLng = gp.spots[spotId].getLatLng(),
-        //             spotLat = spotLatLng.lat,
-        //             spotLng = spotLatLng.lng,
-        //             distance = gp.getHaversineDistance(spotLat, spotLng, gp.lastUserLat, gp.lastUserLng);
-        //     console.log(spotId, distance);
-        // });
+        Object.keys(gp.circles).forEach(function(spotId) {
+            const   spotLatLng = gp.circles[spotId].getLatLng(),
+                    spotLat = spotLatLng.lat,
+                    spotLng = spotLatLng.lng,
+                    distance = gp.getHaversineDistance(spotLat, spotLng, gp.lastUserLat, gp.lastUserLng);
+            console.log(spotId, distance);
+            if (distance <= gp.circles[spotId].options.radius && !gp.spotRunSuccess.includes(spotId)) gp.spotRun(spotId)
+        });
     }
 }
 

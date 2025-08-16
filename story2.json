@@ -1,4 +1,7 @@
 {
+    "settings": {
+        "sequential": true 
+    },
     "spots": [
         {
             "lat": 45.621319026751756,
