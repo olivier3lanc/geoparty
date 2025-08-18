@@ -3,7 +3,7 @@ const gp = {
     defaults: {
         storyUrl: './story.json',
         themeUrl: './theme.json',
-        sequential: true,
+        localStorageIdentifier: 'geoparty',
         leaflet: {
             circles: {
                 default: {
@@ -72,10 +72,46 @@ const gp = {
             localStorage.setItem(identifier, JSON.stringify(backup));
         }
     },
-    // Clear localStorage
-    clearLocalStorage: function(identifier) {
+    // Clear GeoParty localStorage
+    clearLocalStorage: function() {
         if (gp.localStorageAvailable()) {
-            localStorage.removeItem(identifier);
+            localStorage.removeItem(gp.defaults.localStorageIdentifier);
+        }
+    },
+    getProgression: function() {
+        return gp.getLocalStorage(gp.defaults.localStorageIdentifier) || {};
+    },
+    saveProgression: function() {
+        const   newProgression = {
+                    spotRunSuccess: gp.spotRunSuccess
+                },
+                currentProgression = gp.getLocalStorage(gp.defaults.localStorageIdentifier);
+        if (currentProgression === null) {
+            gp.saveLocalStorage({
+                identifier: gp.defaults.localStorageIdentifier,
+                backup: newProgression
+            });
+        } else {
+            let newStorage = {};
+            for (const key in currentProgression) {
+                newStorage[key] = currentProgression[key];
+            }
+            for (const key in newProgression) {
+                newStorage[key] = newProgression[key];
+            }
+            gp.saveLocalStorage({
+                identifier: gp.defaults.localStorageIdentifier,
+                backup: newStorage
+            });
+        }
+    },
+    restoreProgression: function() {
+        const currentProgression = gp.getProgression();
+        if (gp.isArray(currentProgression.spotRunSuccess)) {
+            gp.spotRunSuccess = currentProgression.spotRunSuccess;
+            gp.spotRunSuccess.forEach(function(spotId) {
+                gp.circles[spotId].remove();
+            })
         }
     },
     /**
@@ -222,6 +258,7 @@ const gp = {
                 }
             }).addTo(gp.map);
             gp.map.on('click', gp.handlers._mapClick);
+            gp.restoreProgression();
             // console.log(gp.story)
         }
     },
@@ -242,6 +279,7 @@ const gp = {
                 if (!gp.spotRunSuccess.includes(spotId)) {
                     gp.spotRunSuccess.push(spotId);
                     gp.circles[spotId].remove();
+                    gp.saveProgression();
                     alert(spotId);
                 }
             }
