@@ -161,6 +161,7 @@ const gp = {
         const pos = await new Promise((resolve, reject) => {
             navigator.geolocation.getCurrentPosition(resolve, reject);
         });
+        L.marker([pos.coords.latitude, pos.coords.longitude]).addTo(gp.map);
         return {
             long: pos.coords.longitude,
             lat: pos.coords.latitude
@@ -270,7 +271,12 @@ const gp = {
                 spotsCoordsToDisplay.push([latLng.lat, latLng.lng]);
             });
             if (gp.lastUserLat !== 0 && gp.lastUserLng !== 0) spotsCoordsToDisplay.push([gp.lastUserLat, gp.lastUserLng]);
-            gp.map.fitBounds(spotsCoordsToDisplay, {padding: [20, 20]});
+            console.log(spotsCoordsToDisplay[0])
+            if (spotsCoordsToDisplay.length === 1) {
+                gp.map.setView([spotsCoordsToDisplay[0][0], spotsCoordsToDisplay[0][1]], 17);
+            } else {
+                gp.map.fitBounds(spotsCoordsToDisplay, {padding: [20, 20]});
+            }
         }
     },
     spotRun: function(spotId) {
