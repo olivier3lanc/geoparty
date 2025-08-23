@@ -40,3 +40,9 @@ body {
     box-shadow: 0px 0px 10px gray;
     border: 1px dashed green;
 }
+#locate-me {
+    position: fixed;
+    top: 1em;
+    left: 1em;
+    z-index: 1000;
+}

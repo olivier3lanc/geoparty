@@ -161,7 +161,9 @@ const gp = {
         const pos = await new Promise((resolve, reject) => {
             navigator.geolocation.getCurrentPosition(resolve, reject);
         });
-        L.marker([pos.coords.latitude, pos.coords.longitude]).addTo(gp.map);
+        // L.marker([pos.coords.latitude, pos.coords.longitude]).addTo(gp.map);
+
+        L.circle([pos.coords.latitude, pos.coords.longitude], gp.defaults.leaflet.circles.default).addTo(gp.map);
         return {
             long: pos.coords.longitude,
             lat: pos.coords.latitude
