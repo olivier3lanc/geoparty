@@ -163,7 +163,7 @@ const gp = {
         });
         // L.marker([pos.coords.latitude, pos.coords.longitude]).addTo(gp.map);
 
-        L.circle([pos.coords.latitude, pos.coords.longitude], gp.defaults.leaflet.circles.default).addTo(gp.map);
+        // L.circle([pos.coords.latitude, pos.coords.longitude], gp.defaults.leaflet.circles.default).addTo(gp.map);
         return {
             long: pos.coords.longitude,
             lat: pos.coords.latitude
@@ -246,6 +246,16 @@ const gp = {
                 className: "button-locate",
                 afterClick: (result) => {
                     // Do something after the button is clicked.
+                    // console.log('clickbtn')
+                },
+                afterUnwatchOrientation: () => {
+                    console.log('orientation is unwatched')
+                },
+                afterUnwatchGeolocation: () => {
+                    // Do something after the button is clicked.
+                    gp.lastUserLat = 0;
+                    gp.lastUserLng = 0;
+                    console.log('geolocation is unwatched')
                 },
                 afterMarkerAdd: (event) => {
                     // Do something after the marker (displaying the device's location and orientation) is added.
@@ -254,14 +264,15 @@ const gp = {
                 },
                 afterDeviceMove: (event) => {
                     // Do something after the device moves.
+                    // console.log('devicemove')
                     gp.lastUserLat = event.lat;
                     gp.lastUserLng = event.lng;
                     gp.updateStory();
-                    gp.fitMap();
+                    // gp.fitMap();
                 }
             }).addTo(gp.map);
             gp.map.on('click', gp.handlers._mapClick);
-            gp.restoreProgression();
+            // gp.restoreProgression();
             // console.log(gp.story)
         }
     },
@@ -273,7 +284,7 @@ const gp = {
                 spotsCoordsToDisplay.push([latLng.lat, latLng.lng]);
             });
             if (gp.lastUserLat !== 0 && gp.lastUserLng !== 0) spotsCoordsToDisplay.push([gp.lastUserLat, gp.lastUserLng]);
-            console.log(spotsCoordsToDisplay[0])
+            console.log(spotsCoordsToDisplay)
             if (spotsCoordsToDisplay.length === 1) {
                 gp.map.setView([spotsCoordsToDisplay[0][0], spotsCoordsToDisplay[0][1]], 17);
             } else {
@@ -287,7 +298,7 @@ const gp = {
                 if (!gp.spotRunSuccess.includes(spotId)) {
                     gp.spotRunSuccess.push(spotId);
                     gp.circles[spotId].remove();
-                    gp.saveProgression();
+                    // gp.saveProgression();
                     alert(spotId);
                 }
             }
