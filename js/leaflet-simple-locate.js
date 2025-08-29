@@ -258,6 +258,21 @@
         setZoomLevel: function (level) {
             this.options.zoomLevel = level;
         },
+        triggerInit: function() {
+            this._onClick();
+        },
+        triggerWatchGeolocation: function() {
+            this._watchGeolocation();
+        },
+        triggerWatchOrientation: function() {
+            this._watchOrientation();
+        },
+        triggerUnwatchGeolocation: function() {
+            this._unwatchGeolocation();
+        },
+        triggerUnwatchOrientation: function() {
+            this._unwatchOrientation();
+        },
 
         /**
          * Handles the click event on the control's button.

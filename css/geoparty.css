@@ -40,15 +40,18 @@ body {
     box-shadow: 0px 0px 10px gray;
     border: 1px dashed green;
 }
-#locate-me {
+#commands {
+    display: flex;
+    flex-direction: column;
+    gap: 1em;
+
     position: fixed;
     top: 1em;
     left: 1em;
     z-index: 1000;
-}
-#fit-map {
-    position: fixed;
-    top: 1em;
-    right: 1em;
-    z-index: 1000;
+
+    padding: 1em;
+
+    background-color: white;
+
 }

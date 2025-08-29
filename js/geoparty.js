@@ -219,6 +219,27 @@ const gp = {
             });
         }
     },
+    _startUserLocation: {
+        initialized: false
+    },
+    startUserLocation: function() {
+        // Already started
+        if (gp.simpleLocate.getAccuracy() === null) {
+            if (gp._startUserLocation.initialized) {
+                gp.simpleLocate.triggerWatchGeolocation();
+                gp.simpleLocate.triggerWatchOrientation();
+            } else {
+                gp.simpleLocate.triggerInit();
+                gp._startUserLocation.initialized = true;
+            }
+        } else {
+            alert('already started')
+        }
+    },
+    stopUserLocation: function() {
+        gp.simpleLocate.triggerUnwatchGeolocation();
+        gp.simpleLocate.triggerUnwatchOrientation();
+    },
     init: async function(options) {
         // const userLocation = await gp.getUserLocation();
         // console.log(userLocation);
